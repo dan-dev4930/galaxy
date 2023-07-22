@@ -1,0 +1,56 @@
+import subprocess
+
+def run_adb_command(command):
+    result = subprocess.run(command, capture_output=True, text=True)
+    return result.stdout.strip()
+
+def get_connected_devices():
+    devices_output = run_adb_command(['adb', 'devices'])
+    devices = devices_output.split('\n')[1:]
+    return [device.split('\t')[0] for device in devices if device]
+
+def get_device_model(device_serial):
+    model_info = run_adb_command(['adb', '-s', device_serial, 'shell', 'getprop', 'ro.product.model'])
+    return model_info
+
+def send_key_event(device_serial, key_code):
+    run_adb_command(['adb', '-s', device_serial, 'shell', 'input', 'keyevent', str(key_code)])
+
+if __name__ == "__main__":
+    connected_devices = get_connected_devices()
+
+    if not connected_devices:
+        print("No connected devices found.")
+    else:
+        print("Connected devices:")
+        for i, device_serial in enumerate(connected_devices, start=1):
+            device_model = get_device_model(device_serial)
+            print(f"{i}. {device_model} (Serial: {device_serial})")
+
+        selected_device_index = int(input("Enter the device number you want to control: ")) - 1
+
+        if selected_device_index >= 0 and selected_device_index < len(connected_devices):
+            selected_device_serial = connected_devices[selected_device_index]
+
+            print(f"Controlling device: {get_device_model(selected_device_serial)}")
+
+            while True:
+                print("1. Press hardware 'Back' button")
+                print("2. Press hardware 'Home' button")
+                print("3. Press hardware 'Recent Apps' button")
+                print("0. Exit")
+                choice = int(input("Enter your choice: "))
+
+                if choice == 1:
+                    send_key_event(selected_device_serial, 4)
+                elif choice == 2:
+                    send_key_event(selected_device_serial, 3)
+                elif choice == 3:
+                    send_key_event(selected_device_serial, 187)
+                elif choice == 0:
+                    print("Exiting...")
+                    break
+                else:
+                    print("Invalid choice. Please try again.")
+        else:
+            print("Invalid device number.")
